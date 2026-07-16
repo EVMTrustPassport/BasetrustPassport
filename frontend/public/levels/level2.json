@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 2",
+  "description": "Level 2 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeietgahvchbadg26hobee6beqle4ph37o33h5q7kqbhjgqpica7b6q",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 2
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Check"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 7",
+  "description": "Level 7 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeicmjdf7yqnnmwxbqig67c5szqzrzikomepfsx2wm6kovfpyfy5rei",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 7
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Rocket"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

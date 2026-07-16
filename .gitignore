@@ -1,0 +1,38 @@
+# Secrets
+.env
+.env.*
+!.env.example
+!frontend/.env.production.example
+
+# Contract workspace - only root project
+/contracts/
+/scripts/
+/test/
+/deployments/
+/ignition/
+/hardhat.config.js
+/package.json
+/package-lock.json
+
+# Hardhat generated files
+/cache/
+/artifacts/
+/coverage/
+/coverage.json
+/typechain/
+/typechain-types/
+
+# Dependencies and builds
+node_modules/
+dist/
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db

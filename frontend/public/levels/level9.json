@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 9",
+  "description": "Level 9 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeifqyeh3aq3pjqmm4owin2lmck6fy5pg677ee6kb7g63pjxdqx5b4u",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 9
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Shield"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

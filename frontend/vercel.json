@@ -1,0 +1,13 @@
+{
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/base-stats",
+      "destination": "https://base.blockscout.com/stats-service"
+    },
+    {
+      "source": "/base-stats/:path*",
+      "destination": "https://base.blockscout.com/stats-service/:path*"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 10",
+  "description": "The highest achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeiay35mehojxxpfs7ub745rn6b6ima7euz7dmht2xqom2ik2rzmehy",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 10
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Crown"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

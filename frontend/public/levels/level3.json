@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 3",
+  "description": "Level 3 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeibk3hcl2rnulb6gh274re6cfx3fepesdezo2onf5txxb2l7of3qkm",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 3
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Compass"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

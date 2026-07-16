@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 5",
+  "description": "Level 5 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeiano2npnobtskebwrdnf5ts74cet7v2piz4qghwsozjq45d2pf6be",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 5
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "People"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}

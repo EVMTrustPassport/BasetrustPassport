@@ -1,0 +1,27 @@
+{
+  "name": "Base Trust Passport — Level 8",
+  "description": "Level 8 achievement badge in the Base Trust Passport reputation system.",
+  "image": "ipfs://bafybeibpjab5efn7hoxs34frqguhn2hdkbgyotcisvear4y3xvqb3xayfu",
+  "attributes": [
+    {
+      "trait_type": "Collection",
+      "value": "Base Passport Levels"
+    },
+    {
+      "trait_type": "Passport Level",
+      "value": 8
+    },
+    {
+      "trait_type": "Symbol",
+      "value": "Blocks"
+    },
+    {
+      "trait_type": "Network",
+      "value": "Base"
+    },
+    {
+      "trait_type": "Token Standard",
+      "value": "ERC-1155"
+    }
+  ]
+}
