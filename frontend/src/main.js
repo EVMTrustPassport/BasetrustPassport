@@ -10,6 +10,7 @@ let passportContract;
 let credentialContract;
 let levelNFTContract;
 
+let currentTrustScore = null;
 let walletConnectInProgress = false;
 
 
@@ -1200,6 +1201,8 @@ function resetWalletState() {
   credentialContract = undefined;
   levelNFTContract = undefined;
 
+  currentTrustScore = null;
+
   const connectBtn =
     document.getElementById("connectBtn");
 
@@ -1566,6 +1569,19 @@ async function analyzeWallet(options = {}) {
     }
 
 
+    const dashboardScore = Math.max(
+      0,
+      Math.min(
+        1000,
+        Number(result.trustScore) || 0
+      )
+    );
+
+    const dashboardLevel =
+      getPassportLevel(dashboardScore);
+
+    currentTrustScore = dashboardScore;
+
     let passportState =
       options.passportState ?? null;
 
@@ -1604,18 +1620,54 @@ async function analyzeWallet(options = {}) {
     updateSharePassportButton(
       hasMintedPassport
     );
-    const dashboardScore = Math.max(
-      0,
-      Math.min(
-        1000,
-        Number(result.trustScore) || 0
-      )
-    );
 
-    const dashboardLevel =
-      getPassportLevel(dashboardScore);
+    if (
+      providerSnapshot &&
+      credentialContractSnapshot &&
+      levelNFTContractSnapshot
+    ) {
+      const blockTag =
+        passportState?.blockTag ??
+        await providerSnapshot.getBlockNumber();
 
+      const viewVersion = beginWalletView();
 
+      await Promise.all([
+        renderCredentials(dashboardScore, {
+          sessionVersion,
+          viewVersion,
+          walletAddress,
+          provider: providerSnapshot,
+          credentialContract:
+            credentialContractSnapshot,
+          blockTag,
+          hasPassport: hasMintedPassport,
+        }),
+
+        renderLevelCards(dashboardScore, {
+          sessionVersion,
+          viewVersion,
+          walletAddress,
+          provider: providerSnapshot,
+          levelNFTContract:
+            levelNFTContractSnapshot,
+          blockTag,
+          hasPassport: hasMintedPassport,
+          passportLevel:
+            dashboardLevel.level,
+        }),
+      ]);
+
+      if (
+        !isCurrentWalletView(
+          sessionVersion,
+          walletAddress,
+          viewVersion
+        )
+      ) {
+        return null;
+      }
+    }
     setText(
       "walletAge",
       `${Number(result.walletAgeDays) || 0} days`
@@ -1719,35 +1771,6 @@ async function analyzeWallet(options = {}) {
         dashboardLevel.level
       );
 
-      const onchainScore = Number(
-        passportState.trustScore
-      );
-
-      if (
-        Number.isFinite(onchainScore) &&
-        onchainScore !== dashboardScore
-      ) {
-        console.info(
-          "Trust score verification pending:",
-          {
-            walletAddress,
-            dashboardScore,
-            onchainScore,
-          }
-        );
-
-        const recommendationBox =
-          document.getElementById(
-            "aiRecommendations"
-          );
-
-        if (recommendationBox) {
-          recommendationBox.insertAdjacentHTML(
-            "beforeend",
-            `<p>⏳ On-chain score verification is pending. NFT eligibility currently uses the verified score ${onchainScore}.</p>`
-          );
-        }
-      }
     } else {
 
       setText(
@@ -2613,38 +2636,49 @@ async function refreshWalletOnchainState(options = {}) {
       return passportState;
     }
 
-    const onchainScore =
-      passportState.hasPassport
-        ? Number(passportState.trustScore)
-        : null;
+    if (
+      currentTrustScore !== null &&
+      currentTrustScore !== undefined
+    ) {
+      const nftScore = Math.max(
+        0,
+        Math.min(
+          1000,
+          Number(currentTrustScore) || 0
+        )
+      );
 
-    await Promise.all([
-      renderCredentials(onchainScore, {
-        sessionVersion,
-        viewVersion,
-        walletAddress,
-        provider: providerSnapshot,
-        credentialContract:
-          credentialContractSnapshot,
-        blockTag,
-        hasPassport:
-          passportState.hasPassport,
-      }),
+      const nftLevel =
+        getPassportLevel(nftScore).level;
 
-      renderLevelCards(onchainScore, {
-        sessionVersion,
-        viewVersion,
-        walletAddress,
-        provider: providerSnapshot,
-        levelNFTContract:
-          levelNFTContractSnapshot,
-        blockTag,
-        hasPassport:
-          passportState.hasPassport,
-        passportLevel:
-          passportState.level,
-      }),
-    ]);
+      await Promise.all([
+        renderCredentials(nftScore, {
+          sessionVersion,
+          viewVersion,
+          walletAddress,
+          provider: providerSnapshot,
+          credentialContract:
+            credentialContractSnapshot,
+          blockTag,
+          hasPassport:
+            passportState.hasPassport,
+        }),
+
+        renderLevelCards(nftScore, {
+          sessionVersion,
+          viewVersion,
+          walletAddress,
+          provider: providerSnapshot,
+          levelNFTContract:
+            levelNFTContractSnapshot,
+          blockTag,
+          hasPassport:
+            passportState.hasPassport,
+          passportLevel:
+            nftLevel,
+        }),
+      ]);
+    }
 
     if (
       !isCurrentWalletView(
@@ -3474,6 +3508,14 @@ async function claimCredentialNFT(
     return;
   }
 
+  if (
+    currentTrustScore === null ||
+    currentTrustScore === undefined
+  ) {
+    alert("Analyze wallet first");
+    return;
+  }
+
   const normalizedScore = Math.max(
     0,
     Math.min(
@@ -3773,8 +3815,9 @@ async function renderLevelCards(
     1,
     Math.min(
       10,
-      Number(options.passportLevel) ||
+      Number(
         getPassportLevel(normalizedScore).level
+      ) || 1
     )
   );
 
@@ -4036,6 +4079,14 @@ async function claimLevelNFT(levelId) {
 
   if (!levelItem) {
     alert("Invalid Level NFT");
+    return;
+  }
+
+  if (
+    currentTrustScore === null ||
+    currentTrustScore === undefined
+  ) {
+    alert("Analyze wallet first");
     return;
   }
 
