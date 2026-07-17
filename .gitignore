@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !frontend/.env.production.example
+!frontend/.env.production
 
 # Contract workspace - only root project
 /contracts/
