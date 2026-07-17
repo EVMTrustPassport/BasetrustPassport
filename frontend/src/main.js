@@ -370,12 +370,6 @@ const levels = [
   { level: 9, name: "Elite", min: 800 },
   { level: 10, name: "Legend", min: 900 },
 ];
-const credentials = [
-  { id: 1, name: "Explorer", required: 100, image: "/credential/explorer.png" },
-  { id: 2, name: "Contributor", required: 300, image: "/credential/contributor.png" },
-  { id: 3, name: "Builder", required: 600, image: "/credential/builder.png" },
-  { id: 4, name: "Legend", required: 900, image: "/credential/legend.png" },
-];
 
 const PASSPORT_ADDRESS = (
   import.meta.env.VITE_PASSPORT_ADDRESS || ""
@@ -3186,6 +3180,12 @@ function updatePassportLevelTheme(level) {
 
   passportWrapper.dataset.level = String(safeLevel);
 }
+const credentials = [
+  { id: 1, name: "Explorer", required: 100, image: "/credential/explorer.png" },
+  { id: 2, name: "Contributor", required: 300, image: "/credential/contributor.png" },
+  { id: 3, name: "Builder", required: 600, image: "/credential/builder.png" },
+  { id: 4, name: "Legend", required: 900, image: "/credential/legend.png" },
+];
 
 async function renderCredentials(
   score = null,
