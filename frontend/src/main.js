@@ -400,7 +400,19 @@ const CREDENTIAL_ABI = [
   "function claimFee() view returns (uint256)",
   "function hasClaimed(address wallet,uint256 credentialId) view returns (bool)",
   "function canClaim(address wallet,uint256 credentialId) view returns (bool eligible,string reason)",
+  "function credentialThreshold(uint256 credentialId) view returns (uint256)",
+
   "function balanceOf(address account,uint256 id) view returns (uint256)",
+  "function balanceOfBatch(address[] accounts,uint256[] ids) view returns (uint256[])",
+  "function setApprovalForAll(address operator,bool approved)",
+  "function isApprovedForAll(address account,address operator) view returns (bool)",
+  "function safeTransferFrom(address from,address to,uint256 id,uint256 value,bytes data)",
+  "function safeBatchTransferFrom(address from,address to,uint256[] ids,uint256[] values,bytes data)",
+
+  "event CredentialClaimed(address indexed wallet,uint256 indexed credentialId,uint256 feePaid)",
+  "event TransferSingle(address indexed operator,address indexed from,address indexed to,uint256 id,uint256 value)",
+  "event TransferBatch(address indexed operator,address indexed from,address indexed to,uint256[] ids,uint256[] values)",
+  "event ApprovalForAll(address indexed account,address indexed operator,bool approved)",
 ];
 
 const LEVEL_NFT_ABI = [
@@ -409,7 +421,19 @@ const LEVEL_NFT_ABI = [
   "function hasClaimed(address wallet,uint256 levelId) view returns (bool)",
   "function canClaim(address wallet,uint256 levelId) view returns (bool eligible,string reason)",
   "function highestClaimedLevel(address wallet) view returns (uint256)",
+  "function claimedLevelCount(address wallet) view returns (uint256)",
+
   "function balanceOf(address account,uint256 id) view returns (uint256)",
+  "function balanceOfBatch(address[] accounts,uint256[] ids) view returns (uint256[])",
+  "function setApprovalForAll(address operator,bool approved)",
+  "function isApprovedForAll(address account,address operator) view returns (bool)",
+  "function safeTransferFrom(address from,address to,uint256 id,uint256 value,bytes data)",
+  "function safeBatchTransferFrom(address from,address to,uint256[] ids,uint256[] values,bytes data)",
+
+  "event LevelNFTClaimed(address indexed wallet,uint256 indexed levelId,uint256 feePaid)",
+  "event TransferSingle(address indexed operator,address indexed from,address indexed to,uint256 id,uint256 value)",
+  "event TransferBatch(address indexed operator,address indexed from,address indexed to,uint256[] ids,uint256[] values)",
+  "event ApprovalForAll(address indexed account,address indexed operator,bool approved)",
 ];
 
 document.querySelector("#app").innerHTML = `
@@ -3235,6 +3259,7 @@ async function renderCredentials(
     } = {}
   ) => {
     const credentialId = Number(item.id);
+
     const scoreUnlocked =
       normalizedScore >= Number(item.required);
 
@@ -3259,16 +3284,18 @@ async function renderCredentials(
     } else if (claimed) {
       buttonText = "Claimed";
       cardStatus = "claimed";
-    } else if (eligible) {
-      buttonText = "Claim";
-      disabled = false;
-      cardStatus = "eligible";
+    } else if (!scoreUnlocked) {
+      buttonText = "Locked";
+      cardStatus = "locked";
     } else if (
-      scoreUnlocked &&
       reason === "PREVIOUS_CREDENTIAL_REQUIRED"
     ) {
       buttonText = "Claim Previous First";
       cardStatus = "previous-required";
+    } else if (eligible) {
+      buttonText = "Claim";
+      disabled = false;
+      cardStatus = "eligible";
     }
 
     return `
@@ -3343,6 +3370,7 @@ async function renderCredentials(
     blockTag === undefined
   ) {
     if (!providerSnapshot) return;
+
     blockTag =
       await providerSnapshot.getBlockNumber();
   }
@@ -3352,6 +3380,9 @@ async function renderCredentials(
   const cards = await Promise.all(
     credentials.map(async (item) => {
       const credentialId = Number(item.id);
+
+      const scoreUnlocked =
+        normalizedScore >= Number(item.required);
 
       try {
         const claimed =
@@ -3372,8 +3403,15 @@ async function renderCredentials(
               callOptions
             );
 
-          eligible = Boolean(result[0]);
-          reason = String(result[1] || "");
+          const contractEligible =
+            Boolean(result[0]);
+
+          reason =
+            String(result[1] || "");
+
+          eligible =
+            scoreUnlocked &&
+            contractEligible;
         }
 
         return createCard(item, {
@@ -3422,6 +3460,39 @@ async function claimCredentialNFT(
     return;
   }
 
+  const normalizedCredentialId =
+    Number(credentialId);
+
+  const credentialItem =
+    credentials.find(
+      (item) =>
+        Number(item.id) === normalizedCredentialId
+    );
+
+  if (!credentialItem) {
+    alert("Invalid Credential NFT");
+    return;
+  }
+
+  const normalizedScore = Math.max(
+    0,
+    Math.min(
+      1000,
+      Number(currentTrustScore) || 0
+    )
+  );
+
+  const requiredScore =
+    Number(credentialItem.required);
+
+  if (normalizedScore < requiredScore) {
+    alert(
+      `${credentialName} requires ${requiredScore} Trust Score. Your current score is ${normalizedScore}.`
+    );
+
+    return;
+  }
+
   const sessionVersion =
     walletSessionVersion;
 
@@ -3441,7 +3512,7 @@ async function claimCredentialNFT(
     levelNFTContract;
 
   const button = document.querySelector(
-    `[data-credential-id="${credentialId}"] .credential-btn`
+    `[data-credential-id="${normalizedCredentialId}"] .credential-btn`
   );
 
   const originalText =
@@ -3451,11 +3522,11 @@ async function claimCredentialNFT(
   try {
     if (button) {
       button.disabled = true;
-      button.innerText = "Claiming...";
+      button.innerText = "Checking...";
     }
 
-    const claimFee =
-      await credentialContractSnapshot.claimFee();
+    const blockTag =
+      await providerSnapshot.getBlockNumber();
 
     if (
       !isCurrentWalletSession(
@@ -3466,11 +3537,115 @@ async function claimCredentialNFT(
       return;
     }
 
+    const callOptions = { blockTag };
+
+    const alreadyClaimed =
+      await credentialContractSnapshot.hasClaimed(
+        walletAddress,
+        normalizedCredentialId,
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    if (alreadyClaimed) {
+      if (button) {
+        button.disabled = true;
+        button.innerText = "Claimed";
+      }
+
+      alert(
+        `${credentialName} has already been claimed by this wallet.`
+      );
+
+      return;
+    }
+
+    const claimStatus =
+      await credentialContractSnapshot.canClaim(
+        walletAddress,
+        normalizedCredentialId,
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    const contractEligible =
+      Boolean(claimStatus[0]);
+
+    const reason =
+      String(claimStatus[1] || "");
+
+    if (!contractEligible) {
+      let message =
+        "Credential NFT is not eligible for claim.";
+
+      if (reason === "PASSPORT_REQUIRED") {
+        message =
+          "Mint your Passport before claiming a Credential NFT.";
+      } else if (reason === "ALREADY_CLAIMED") {
+        message =
+          `${credentialName} has already been claimed.`;
+      } else if (
+        reason === "PREVIOUS_CREDENTIAL_REQUIRED"
+      ) {
+        message =
+          `Claim Credential ${normalizedCredentialId - 1} first.`;
+      } else if (
+        reason === "INVALID_CREDENTIAL_ID"
+      ) {
+        message =
+          "Invalid Credential NFT.";
+      }
+
+      if (button) {
+        button.disabled = false;
+        button.innerText = originalText;
+      }
+
+      alert(message);
+      return;
+    }
+
+    const claimFee =
+      await credentialContractSnapshot.claimFee(
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    if (button) {
+      button.innerText = "Claiming...";
+    }
+
     const tx =
       await credentialContractSnapshot
         .claimCredential(
-          credentialId,
-          { value: claimFee }
+          normalizedCredentialId,
+          {
+            value: claimFee,
+          }
         );
 
     if (button) {
@@ -3492,7 +3667,7 @@ async function claimCredentialNFT(
       button.innerText = "Syncing...";
     }
 
-    const blockTag =
+    const confirmedBlockTag =
       await providerSnapshot.getBlockNumber();
 
     if (
@@ -3515,7 +3690,7 @@ async function claimCredentialNFT(
           credentialContractSnapshot,
         levelNFTContract:
           levelNFTContractSnapshot,
-        blockTag,
+        blockTag: confirmedBlockTag,
       });
 
     if (
@@ -3620,8 +3795,10 @@ async function renderLevelCards(
   ) => {
     const levelId = Number(item.level);
     const requiredScore = Number(item.min);
+
     const scoreUnlocked =
       normalizedScore >= requiredScore;
+
     const isCurrentLevel =
       hasPassport !== false &&
       levelId === passportLevel;
@@ -3647,16 +3824,18 @@ async function renderLevelCards(
     } else if (claimed) {
       buttonText = "Claimed";
       cardStatus = "claimed";
-    } else if (eligible) {
-      buttonText = "Claim";
-      disabled = false;
-      cardStatus = "eligible";
+    } else if (!scoreUnlocked) {
+      buttonText = "Locked";
+      cardStatus = "locked";
     } else if (
-      scoreUnlocked &&
       reason === "PREVIOUS_LEVEL_REQUIRED"
     ) {
       buttonText = "Claim Previous First";
       cardStatus = "previous-required";
+    } else if (eligible) {
+      buttonText = "Claim";
+      disabled = false;
+      cardStatus = "eligible";
     }
 
     return `
@@ -3752,6 +3931,7 @@ async function renderLevelCards(
     blockTag === undefined
   ) {
     if (!providerSnapshot) return;
+
     blockTag =
       await providerSnapshot.getBlockNumber();
   }
@@ -3761,6 +3941,10 @@ async function renderLevelCards(
   const cards = await Promise.all(
     levels.map(async (item) => {
       const levelId = Number(item.level);
+      const requiredScore = Number(item.min);
+
+      const scoreUnlocked =
+        normalizedScore >= requiredScore;
 
       try {
         const claimed =
@@ -3781,8 +3965,15 @@ async function renderLevelCards(
               callOptions
             );
 
-          eligible = Boolean(result[0]);
-          reason = String(result[1] || "");
+          const contractEligible =
+            Boolean(result[0]);
+
+          reason =
+            String(result[1] || "");
+
+          eligible =
+            scoreUnlocked &&
+            contractEligible;
         }
 
         return createCard(item, {
@@ -3834,6 +4025,40 @@ async function claimLevelNFT(levelId) {
     return;
   }
 
+  const normalizedLevelId =
+    Number(levelId);
+
+  const levelItem =
+    levels.find(
+      (item) =>
+        Number(item.level) === normalizedLevelId
+    );
+
+  if (!levelItem) {
+    alert("Invalid Level NFT");
+    return;
+  }
+
+  const normalizedScore = Math.max(
+    0,
+    Math.min(
+      1000,
+      Number(currentTrustScore) || 0
+    )
+  );
+
+  const requiredScore =
+    Number(levelItem.min);
+
+
+  if (normalizedScore < requiredScore) {
+    alert(
+      `Level ${normalizedLevelId} requires ${requiredScore} Trust Score. Your current score is ${normalizedScore}.`
+    );
+
+    return;
+  }
+
   const sessionVersion =
     walletSessionVersion;
 
@@ -3852,22 +4077,23 @@ async function claimLevelNFT(levelId) {
   const levelNFTContractSnapshot =
     levelNFTContract;
 
-  const button = document.querySelector(
-    `[data-level-id="${levelId}"] button`
-  );
+  const button =
+    document.querySelector(
+      `[data-level-id="${normalizedLevelId}"] button`
+    );
 
   const originalText =
     button?.innerText ||
-    `Claim Level ${levelId}`;
+    `Claim Level ${normalizedLevelId}`;
 
   try {
     if (button) {
       button.disabled = true;
-      button.innerText = "Claiming...";
+      button.innerText = "Checking...";
     }
 
-    const claimFee =
-      await levelNFTContractSnapshot.claimFee();
+    const blockTag =
+      await providerSnapshot.getBlockNumber();
 
     if (
       !isCurrentWalletSession(
@@ -3878,10 +4104,116 @@ async function claimLevelNFT(levelId) {
       return;
     }
 
+    const callOptions = { blockTag };
+
+
+    const alreadyClaimed =
+      await levelNFTContractSnapshot.hasClaimed(
+        walletAddress,
+        normalizedLevelId,
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    if (alreadyClaimed) {
+      if (button) {
+        button.disabled = true;
+        button.innerText = "Claimed";
+      }
+
+      alert(
+        `Level ${normalizedLevelId} has already been claimed by this wallet.`
+      );
+
+      return;
+    }
+
+
+    const claimStatus =
+      await levelNFTContractSnapshot.canClaim(
+        walletAddress,
+        normalizedLevelId,
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    const contractEligible =
+      Boolean(claimStatus[0]);
+
+    const reason =
+      String(claimStatus[1] || "");
+
+    if (!contractEligible) {
+      let message =
+        "Level NFT is not eligible for claim.";
+
+      if (reason === "PASSPORT_REQUIRED") {
+        message =
+          "Mint your Passport before claiming a Level NFT.";
+      } else if (reason === "ALREADY_CLAIMED") {
+        message =
+          `Level ${normalizedLevelId} has already been claimed.`;
+      } else if (
+        reason === "PREVIOUS_LEVEL_REQUIRED"
+      ) {
+        message =
+          `Claim Level ${normalizedLevelId - 1} first.`;
+      } else if (
+        reason === "INVALID_LEVEL_ID"
+      ) {
+        message =
+          "Invalid Level NFT.";
+      }
+
+      if (button) {
+        button.disabled = false;
+        button.innerText = originalText;
+      }
+
+      alert(message);
+      return;
+    }
+
+    const claimFee =
+      await levelNFTContractSnapshot.claimFee(
+        callOptions
+      );
+
+    if (
+      !isCurrentWalletSession(
+        sessionVersion,
+        walletAddress
+      )
+    ) {
+      return;
+    }
+
+    if (button) {
+      button.innerText = "Claiming...";
+    }
+
     const tx =
       await levelNFTContractSnapshot.claimLevel(
-        levelId,
-        { value: claimFee }
+        normalizedLevelId,
+        {
+          value: claimFee,
+        }
       );
 
     if (button) {
@@ -3903,7 +4235,7 @@ async function claimLevelNFT(levelId) {
       button.innerText = "Syncing...";
     }
 
-    const blockTag =
+    const confirmedBlockTag =
       await providerSnapshot.getBlockNumber();
 
     if (
@@ -3926,7 +4258,7 @@ async function claimLevelNFT(levelId) {
           credentialContractSnapshot,
         levelNFTContract:
           levelNFTContractSnapshot,
-        blockTag,
+        blockTag: confirmedBlockTag,
       });
 
     if (
@@ -3947,7 +4279,7 @@ async function claimLevelNFT(levelId) {
     }
   } catch (error) {
     console.error(
-      `Claim Level ${levelId} failed:`,
+      `Claim Level ${normalizedLevelId} failed:`,
       error
     );
 
