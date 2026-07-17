@@ -3324,7 +3324,7 @@ async function renderCredentials(
     } else if (
       reason === "PREVIOUS_CREDENTIAL_REQUIRED"
     ) {
-      buttonText = "Claim Previous First";
+      buttonText = "Claim Previous";
       cardStatus = "previous-required";
     } else if (eligible) {
       buttonText = "Claim";
